@@ -1,75 +1,101 @@
-from typing import Dict
+from typing import Dict, Any
 import uvicorn
 import os
 import argparse
+from urllib.request import urlretrieve
+
 from fastapi import FastAPI, File, UploadFile
-from fastapi.param_functions
+from fastapi.param_functions import Form
+from pydantic import BaseModel
+
+from config import UPLOAD_PATH, TOP_K
+from log import LOGGER
+from image_search import do_image_search
+from text_search import do_text_search
+from insert_image import do_insert
+from milvus_collection import set_collection
+
 
 if not os.path.exists(UPLOAD_PATH):
     os.makedirs(UPLOAD_PATH)
-    LOGGER.info(f"mkdir the path:{UPLOAD_PATH}")
+    LOGGER.info(f"make the dir: {UPLOAD_PATH}")
+
+
+app = FastAPI()
+
 
 @app.post('/img/search')
-async def search_images(image: UploadFile = File(...), topk: int = Form(TOP_K), table_name: str = None):
+async def image_search(image: UploadFile = File(...), topk: int = Form(TOP_K)):
     try:
-        #TODO search similar image logic
-        
+        content = await image.read()
+        print('read pic succ')
+        img_path = os.path.join(UPLOAD_PATH, image.filename)
+        with open(img_path, "wb+") as f:
+            f.write(content)
+        res = do_image_search(img_path)
         LOGGER.info("Successfully searched similar images!")
         return res
     except Exception as e:
         LOGGER.error(e)
         return {'status': False, 'msg': e}, 400
+
+
+@app.post('/path/search')
+async def path_search(path: str, topk: int = Form(TOP_K)):
+    try:
+        res = do_image_search(path)
+        LOGGER.info("Successfully searched similar images!")
+        return res
+    except Exception as e:
+        LOGGER.error(e)
+        return {'status': False, 'msg': e}, 400
+
 
 @app.post('/text/search')
-async def search_text(text: str, topk: int = Form(TOP_K), table_name: str = None):
+async def text_search(text: str, topk: int = Form(TOP_K)):
     try:
-        #TODO search similar text logic
+        res = do_text_search(text)
         LOGGER.info("Successfully searched similar images!")
         return res
     except Exception as e:
         LOGGER.error(e)
         return {'status': False, 'msg': e}, 400
 
-@app.post('/img/upload')
-async def upload_items(image: UploadFile = File(None), url: str = None, meta_info = Dict, table_name: str = None):
-    try:
-        # Save the upload image to server.
-        if image is not None:
-            content = await image.read()
-            print('read pic succ')
-            img_path = os.path.join(UPLOAD_PATH, image.filename)
-            with open(img_path, "wb+") as f:
-                f.write(content)
-        elif url is not None:
-            img_path = os.path.join(UPLOAD_PATH, os.path.basename(url))
-            urlretrieve(url, img_path)
-        else:
-            return {'status': False, 'msg': 'Image and url are required'}, 400
-        #TODO implement upload image, meta_info record.     
-        #vector_id = do_upload(table_name, img_path, MODEL, MILVUS_CLI, MYSQL_CLI)
-        LOGGER.info(f"Successfully uploaded data, vector id: {vector_id}")
-        return "Successfully loaded data: " + str(vector_id)
-    except Exception as e:
-        LOGGER.error(e)
-        return {'status': False, 'msg': e}, 400
 
-def parse_arguments():
-    parser = argparse.ArgumentParser(description='Script description.')
-    parser.add_argument('--milvus_database', type=str, required=False, default=None,
-                        help='Path to the Milvus databse.')
-    parser.add_argument('--mongodb_database', type=str, required=False, default=None,
-                        help='Path to the MongoDB database.')
-    parser.add_argument('--load_csv', action='store_true',
-                        help='Flag to enable loading images from CSV.')
-    parser.add_argument('--load_img_root_path', type=str, required=False, default=None,
-                        help='Root path for loading images.')
-    args = parser.parse_args()
-    return args
+# @app.post('/img/insert')
+# async def insert_image(image: UploadFile = File(None), url: str = None, sku_data: SKU = None):
+#     try:
+#         # Save the upload image to server.
+#         if image is not None:
+#             content = await image.read()
+#             print('read pic succ')
+#             img_path = os.path.join(UPLOAD_PATH, image.filename)
+#             with open(img_path, "wb+") as f:
+#                 f.write(content)
+#         elif url is not None:
+#             img_path = os.path.join(UPLOAD_PATH, os.path.basename(url))
+#             urlretrieve(url, img_path)
+#         else:
+#             return {'status': False, 'msg': 'Image and url are required'}, 400
+#         img_id = do_insert(img_path, sku_data)
+#         LOGGER.info(f"Successfully uploaded data, image id: {img_id}")
+#         return "Successfully loaded data: " + str(img_id)
+#     except Exception as e:
+#         LOGGER.error(e)
+#         return {'status': False, 'msg': e}, 400
+
+
+# def parse_arguments():
+#     parser = argparse.ArgumentParser(description='Script description.')
+#     parser.add_argument('--load_csv', action='store_true',
+#                         help='Flag to enable loading images from CSV.')
+#     parser.add_argument('--load_img_root_path', type=str, required=False, default=None,
+#                         help='Root path for loading images.')
+#     args = parser.parse_args()
+#     return args
+
 
 if __name__ == '__main__':
     args = parse_arguments()
-    #TODO implement build databases
-    build_databases(args.milvus_database, arg.mongodb_database)
-    if args.load_csv is not None:
-        load_data(args.load_csv, args.load_img_root_path)
-    uvicorn.run(app=app, host='0.0.0.0', port=5000)
+    set_collection()
+    uvicorn.run(app=app, host='localhost', port=5000)
