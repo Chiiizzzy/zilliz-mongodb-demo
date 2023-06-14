@@ -16,7 +16,7 @@ MONGO_DB = os.getenv('MONGO_DB', 'fashion')
 MONGO_COLLECTION = os.getenv('MONGO_COLLECTION', 'fashion')
 
 ############### Device Configuration ###############
-DEVICE = os.getenv('DEVICE', 'cuda:0')
+DEVICE = os.getenv('DEVICE', 'cpu')
 
 ############### Data Path ###############
 UPLOAD_PATH = os.getenv('UPLOAD_PATH', 'tmp/search-images')

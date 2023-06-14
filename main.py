@@ -96,6 +96,6 @@ async def text_search(text: str, topk: int = Form(TOP_K)):
 
 
 if __name__ == '__main__':
-    args = parse_arguments()
+    # args = parse_arguments()
     set_collection()
     uvicorn.run(app=app, host='localhost', port=5000)
