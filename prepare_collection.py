@@ -1,15 +1,27 @@
+import csv
+
+import pandas as pd
 from towhee import pipe, ops
+
 from config import MILVUS_HOST, MILVUS_PORT, MILVUS_COLLECTION, MONGO_URI, MONGO_DB, MONGO_COLLECTION, THRESHOLD, TOP_K, DEVICE
 
 
-def do_insert(img_path, sku_data):
+def prepare_collection(csv_path, root_path, num):
+    img_data = pd.read_csv(csv_path, usecols=range(10))[:num]
+    paths = img_data.id.apply(lambda x: root_path + str(x) + '.jpg').to_list()
+
+    with open(csv_path, encoding='utf-8') as file:
+        dreader = csv.DictReader(file)
+        style_data = list(dreader)
+    skus = style_data[:num]
+
     init_pipe = (
         pipe.input( 'path', 'sku')
             .map('sku', 'id', lambda x: x['id'])
     )
 
     sku_pipe = (
-        init_pipe.map('sku', '_id', ops.storage.mongo_insert(uri=MONGO_URI, database=MONGO_DB, collection=MONGO_COLLECTION))
+        init_pipe.map('sku', 'insert_id', ops.storage.mongo_insert(uri=MONGO_URI, database=MONGO_DB, collection=MONGO_COLLECTION))
     )
 
     img_pipe = (
@@ -22,7 +34,11 @@ def do_insert(img_path, sku_data):
     )
 
     insert_pipe = (
-        img_pipe.concat(sku_pipe).output('id')
+        img_pipe.concat(sku_pipe).output()
     )
 
-    return insert_pipe(img_path, sku_data).to_list()
+    # inputs = [(path, sku) for path, sku in zip(paths, skus)]
+    # insert_pipe.batch(inputs)
+    for path, sku in zip(paths, skus):
+        insert_pipe(path, sku)
+
