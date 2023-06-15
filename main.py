@@ -68,7 +68,7 @@ def parse_arguments():
     parser.add_argument('--csv', type=str, required=True, help='path to sku data.')
     parser.add_argument('--root', type=str, required=True, help='Root path for loading images.')
     parser.add_argument('--num', type=int, required=False, default=100, help='Number of insert images.')
-    parser.add_argument('--purge', type=bool, required=False, default=True, help='Whether to clear existing collection.')
+    parser.add_argument('--purge', action='store_true', help='whether to clear existing collection.')
     args = parser.parse_args()
     return args
 
