@@ -11,10 +11,10 @@ from pydantic import BaseModel
 
 from config import UPLOAD_PATH, TOP_K
 from log import LOGGER
-from image_search import do_image_search
-from text_search import do_text_search
-from set_collection import set_collection
-from prepare_collection import prepare_collection
+from operations.image_search import do_image_search
+from operations.text_search import do_text_search
+from operations.set_collection import set_collection
+from operations.prepare_collection import prepare_collection
 
 
 if not os.path.exists(UPLOAD_PATH):
@@ -65,8 +65,8 @@ async def text_search(text: str, topk: int = Form(TOP_K)):
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Script description.')
-    parser.add_argument('--csv', type=str, required=True, help='path to sku data.')
-    parser.add_argument('--root', type=str, required=True, help='Root path for loading images.')
+    parser.add_argument('--csv', type=str, required=False, default=None, help='path to sku data.')
+    parser.add_argument('--root', type=str, required=False, default=None, help='Root path for loading images.')
     parser.add_argument('--num', type=int, required=False, default=100, help='Number of insert images.')
     parser.add_argument('--purge', action='store_true', help='whether to clear existing collection.')
     args = parser.parse_args()
@@ -78,5 +78,6 @@ if __name__ == '__main__':
     logger.setLevel(logging.WARNING)
     args = parse_arguments()
     set_collection(args.purge)
-    prepare_collection(args.csv, args.root, args.num)
+    if args.csv and args.root:
+        prepare_collection(args.csv, args.root, args.num)
     uvicorn.run(app=app, host='localhost', port=5000)
