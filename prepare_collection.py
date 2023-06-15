@@ -37,8 +37,6 @@ def prepare_collection(csv_path, root_path, num):
         img_pipe.concat(sku_pipe).output()
     )
 
-    # inputs = [(path, sku) for path, sku in zip(paths, skus)]
-    # insert_pipe.batch(inputs)
-    for path, sku in zip(paths, skus):
-        insert_pipe(path, sku)
-
+    inputs = [(path, sku) for path, sku in zip(paths, skus)]
+    print(f'Preparing collection, {len(inputs)} images to insert...')
+    insert_pipe.batch(inputs)

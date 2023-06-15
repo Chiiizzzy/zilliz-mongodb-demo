@@ -1,8 +1,9 @@
-from typing import Dict, Any
 import uvicorn
 import os
 import argparse
+import logging
 from urllib.request import urlretrieve
+from typing import Dict, Any
 
 from fastapi import FastAPI, File, UploadFile
 from fastapi.param_functions import Form
@@ -73,6 +74,8 @@ def parse_arguments():
 
 
 if __name__ == '__main__':
+    logger = logging.getLogger()
+    logger.setLevel(logging.WARNING)
     args = parse_arguments()
     set_collection(args.purge)
     prepare_collection(args.csv, args.root, args.num)
